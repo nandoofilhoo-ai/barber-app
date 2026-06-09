@@ -80,6 +80,24 @@ function initApp() {
         resetToSeed();
     }
     
+    // Define datas padrão nos inputs customizados (início do mês atual até hoje)
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const formatDateYMD = (d) => {
+        const offset = d.getTimezoneOffset();
+        const localDate = new Date(d.getTime() - (offset*60*1000));
+        return localDate.toISOString().split('T')[0];
+    };
+    
+    ["dashboard-date-start", "barber-date-start", "manager-date-start"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = formatDateYMD(firstDay);
+    });
+    ["dashboard-date-end", "barber-date-end", "manager-date-end"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = formatDateYMD(now);
+    });
+
     // Atualiza hora da barra de status simulada
     updateStatusTime();
     setInterval(updateStatusTime, 30000);
@@ -323,10 +341,26 @@ function setupEventHandlers() {
     document.getElementById("dashboard-period").addEventListener("change", () => {
         renderDashboard();
     });
+    document.getElementById("dashboard-date-start").addEventListener("change", () => renderDashboard());
+    document.getElementById("dashboard-date-end").addEventListener("change", () => renderDashboard());
 
     // 11. Manager Period Selection
     document.getElementById("manager-period-select").addEventListener("change", () => {
         renderBarberMenu();
+    });
+    document.getElementById("manager-date-start").addEventListener("change", () => renderBarberMenu());
+    document.getElementById("manager-date-end").addEventListener("change", () => renderBarberMenu());
+
+    // 11b. Barber Period Selection
+    document.getElementById("barber-period-select").addEventListener("change", () => {
+        renderBarberMenu();
+    });
+    document.getElementById("barber-date-start").addEventListener("change", () => renderBarberMenu());
+    document.getElementById("barber-date-end").addEventListener("change", () => renderBarberMenu());
+
+    // 11c. Close Collaborator History Modal
+    document.getElementById("close-staff-history-btn").addEventListener("click", () => {
+        closeModal("modal-staff-history");
     });
 
     // 12. Search inputs
@@ -538,9 +572,10 @@ function updateActiveProfileHeader() {
 }
 
 // Filtra registros pelo período selecionado
-function filterByPeriod(records, dateField, period) {
+function filterByPeriod(records, dateField, period, prefixId = "dashboard") {
     const now = new Date();
     let minDate = new Date();
+    let maxDate = new Date();
 
     if (period === "hoje") {
         minDate.setHours(0, 0, 0, 0);
@@ -556,6 +591,17 @@ function filterByPeriod(records, dateField, period) {
     } else if (period === "ano") {
         minDate.setMonth(0, 1);
         minDate.setHours(0, 0, 0, 0);
+    } else if (period === "custom") {
+        const startVal = document.getElementById(`${prefixId}-date-start`).value;
+        const endVal = document.getElementById(`${prefixId}-date-end`).value;
+        
+        minDate = startVal ? new Date(startVal + "T00:00:00") : new Date(0);
+        maxDate = endVal ? new Date(endVal + "T23:59:59") : new Date();
+        
+        return records.filter(r => {
+            const recordDate = new Date(r[dateField]);
+            return recordDate >= minDate && recordDate <= maxDate;
+        });
     }
 
     return records.filter(r => {
@@ -567,10 +613,18 @@ function filterByPeriod(records, dateField, period) {
 function renderDashboard() {
     const period = document.getElementById("dashboard-period").value;
     
+    // Show/hide campos customizados de data
+    const customDatesEl = document.getElementById("dashboard-custom-dates");
+    if (period === "custom") {
+        customDatesEl.classList.remove("hidden");
+    } else {
+        customDatesEl.classList.add("hidden");
+    }
+
     // Filtra lançamentos e vendas ativos (não cancelados)
     const activeLancamentos = state.lancamentos.filter(l => !l.cancelado);
-    const periodLancamentos = filterByPeriod(activeLancamentos, "data_hora", period);
-    const periodVendas = filterByPeriod(state.vendas, "data", period);
+    const periodLancamentos = filterByPeriod(activeLancamentos, "data_hora", period, "dashboard");
+    const periodVendas = filterByPeriod(state.vendas, "data", period, "dashboard");
 
     // Faturamento de serviços
     let totalServicos = 0;
@@ -598,10 +652,13 @@ function renderDashboard() {
 
     // Custos de compra e comissões sobre produtos
     let totalCustoProdutos = 0;
+    let totalLucroBrutoProdutos = 0;
     periodVendas.forEach(v => {
         const prod = state.produtos.find(p => p.id === v.product_id);
         const custoUnit = prod ? parseFloat(prod.preco_compra || 0) : 0;
-        totalCustoProdutos += custoUnit * parseInt(v.quantidade);
+        const totalCusto = custoUnit * parseInt(v.quantidade);
+        totalCustoProdutos += totalCusto;
+        totalLucroBrutoProdutos += (parseFloat(v.total) - totalCusto);
         
         // Se houver comissão sobre venda de produto (simulamos 10% padrão para o barbeiro que vendeu)
         if (v.team_member_id) {
@@ -619,6 +676,33 @@ function renderDashboard() {
     document.getElementById("kpi-valor-produtos").textContent = formatBRL(totalProdutos);
     document.getElementById("kpi-qtd-produtos").textContent = `${periodVendas.length} produtos vendidos`;
     document.getElementById("kpi-lucro-estimado").textContent = formatBRL(lucroLiquido);
+
+    // Gestor/Gerente Extended Views and KPIs
+    const isGestor = state.config.activeUserId === "gestor";
+    const gestorKPIs = document.getElementById("gestor-extended-kpis");
+    const gestorSecs = document.getElementById("gestor-sections");
+
+    if (isGestor) {
+        gestorKPIs.classList.remove("hidden");
+        gestorSecs.classList.remove("hidden");
+
+        // KPI: Lucro real sobre produtos (faturamento produtos - custo compra)
+        document.getElementById("kpi-lucro-produtos").textContent = formatBRL(totalLucroBrutoProdutos);
+        document.getElementById("kpi-lucro-produtos-sub").textContent = `${periodVendas.length} produtos vendidos`;
+
+        // KPI: Ticket Médio (Faturamento Total / Lançamentos Atendimentos)
+        const ticketMedio = periodLancamentos.length > 0 ? (faturamentoTotal / periodLancamentos.length) : 0;
+        document.getElementById("kpi-ticket-medio").textContent = formatBRL(ticketMedio);
+
+        // Renderiza Rendimento por Profissional (Ranking de Barbeiros)
+        renderBarberRanking(periodLancamentos, periodVendas);
+
+        // Renderiza Linha do Tempo de Atividades
+        renderBusinessTimeline(periodLancamentos, periodVendas);
+    } else {
+        gestorKPIs.classList.add("hidden");
+        gestorSecs.classList.add("hidden");
+    }
 
     // Ajusta o progresso do anel circular (Meta de R$ 5.000 para hoje, R$ 10.000 semana, R$ 25.000 mês, R$ 200.000 ano)
     let meta = 25000;
@@ -830,19 +914,28 @@ function renderBarberDashboard() {
     const user = state.membros.find(m => m.id === barberId);
     if (!user) return;
 
-    // Iniciais do Avatar
+    // Inciais do Avatar
     const initials = user.nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     document.getElementById("barber-avatar-initials").textContent = initials;
     document.getElementById("barber-profile-name").textContent = user.nome;
     document.getElementById("barber-profile-role").textContent = user.cargo.toUpperCase();
 
-    // Filtra lançamentos e vendas do barbeiro neste mês
-    const period = "mes"; // Lançamentos privados mostram base mensal
+    // Filtra lançamentos e vendas do barbeiro pelo período selecionado
+    const period = document.getElementById("barber-period-select").value;
+    
+    // Show/hide campos customizados de data do barbeiro
+    const customDatesEl = document.getElementById("barber-custom-dates");
+    if (period === "custom") {
+        customDatesEl.classList.remove("hidden");
+    } else {
+        customDatesEl.classList.add("hidden");
+    }
+
     const activeLanc = state.lancamentos.filter(l => !l.cancelado && l.team_member_id === barberId);
-    const monthLanc = filterByPeriod(activeLanc, "data_hora", period);
+    const monthLanc = filterByPeriod(activeLanc, "data_hora", period, "barber");
     
     const activeSales = state.vendas.filter(v => v.team_member_id === barberId);
-    const monthSales = filterByPeriod(activeSales, "data", period);
+    const monthSales = filterByPeriod(activeSales, "data", period, "barber");
 
     // Contadores de Cortes e Vendas
     document.getElementById("barber-stat-cortes").textContent = monthLanc.length;
@@ -934,10 +1027,18 @@ function renderBarberDashboard() {
 function renderManagerDashboard() {
     const period = document.getElementById("manager-period-select").value;
 
+    // Show/hide campos customizados de data do gestor
+    const customDatesEl = document.getElementById("manager-custom-dates");
+    if (period === "custom") {
+        customDatesEl.classList.remove("hidden");
+    } else {
+        customDatesEl.classList.add("hidden");
+    }
+
     const activeLanc = state.lancamentos.filter(l => !l.cancelado);
-    const periodLanc = filterByPeriod(activeLanc, "data_hora", period);
+    const periodLanc = filterByPeriod(activeLanc, "data_hora", period, "manager");
     
-    const periodSales = filterByPeriod(state.vendas, "data", period);
+    const periodSales = filterByPeriod(state.vendas, "data", period, "manager");
 
     // 1. Renderiza lista de pagamentos de comissões por barbeiro
     const payoutContainer = document.getElementById("manager-payout-list");
@@ -974,9 +1075,14 @@ function renderManagerDashboard() {
             </div>
             <div class="payout-actions">
                 <span class="payout-stats">${staffLanc.length} cortes • ${staffSales.length} produtos</span>
-                <button class="btn-pay-action" onclick="registerPayout('${m.id}', ${comissaoTotal})">
-                    Pagar Comissão
-                </button>
+                <div style="display:flex; gap:8px;">
+                    <button class="action-btn-mini" style="padding: 4px 8px; font-size: 11px;" onclick="viewStaffHistory('${m.id}')">
+                        <i data-lucide="history" style="width:12px; height:12px;"></i> Histórico
+                    </button>
+                    <button class="btn-pay-action" onclick="registerPayout('${m.id}', ${comissaoTotal})">
+                        Pagar
+                    </button>
+                </div>
             </div>
         `;
         payoutContainer.appendChild(card);
@@ -1314,6 +1420,196 @@ window.editProduct = function(id) {
 
     openModal("modal-product");
 };
+
+// --- GESTOR EXTRA RENDERING FUNCTIONS ---
+
+function renderBarberRanking(lancamentos, vendas) {
+    const container = document.getElementById("ranking-barbers-container");
+    container.innerHTML = "";
+
+    // Mapeia rendimentos de barbeiros
+    const rendimentos = {};
+    state.membros.forEach(m => {
+        if (m.status === "ativo" && m.cargo !== "apoio") {
+            rendimentos[m.id] = { nome: m.nome, total: 0 };
+        }
+    });
+
+    // Faturamento serviços
+    lancamentos.forEach(l => {
+        if (rendimentos[l.team_member_id]) {
+            rendimentos[l.team_member_id].total += parseFloat(l.valor) * parseInt(l.quantidade);
+        }
+    });
+
+    // Faturamento vendas produtos
+    vendas.forEach(v => {
+        if (v.team_member_id && rendimentos[v.team_member_id]) {
+            rendimentos[v.team_member_id].total += parseFloat(v.total);
+        }
+    });
+
+    // Converte para array e ordena
+    const arr = Object.values(rendimentos).sort((a, b) => b.total - a.total);
+    const maxRendimento = arr.length > 0 ? Math.max(...arr.map(r => r.total), 1) : 1;
+
+    if (arr.length === 0) {
+        container.innerHTML = `<span class="item-subtitle" style="text-align:center;">Sem rendimentos no período.</span>`;
+        return;
+    }
+
+    arr.forEach(r => {
+        const pct = (r.total / maxRendimento) * 100;
+        const el = document.createElement("div");
+        el.className = "ranking-item";
+        el.innerHTML = `
+            <div class="ranking-info">
+                <span class="ranking-name">${r.nome}</span>
+                <span class="ranking-val">${formatBRL(r.total)}</span>
+            </div>
+            <div class="ranking-bar-bg">
+                <div class="ranking-bar-fill" style="width: ${pct}%"></div>
+            </div>
+        `;
+        container.appendChild(el);
+    });
+}
+
+function renderBusinessTimeline(lancamentos, vendas) {
+    const container = document.getElementById("gestor-business-timeline");
+    container.innerHTML = "";
+
+    const items = [];
+    lancamentos.forEach(l => {
+        const serv = state.servicos.find(s => s.id === l.service_id);
+        const m = state.membros.find(x => x.id === l.team_member_id);
+        items.push({
+            tipo: "servico",
+            nome: serv ? serv.nome : "Serviço",
+            colaborador: m ? m.nome : "Colaborador",
+            data: l.data_hora,
+            valor: parseFloat(l.valor) * parseInt(l.quantidade),
+            desc: `${l.quantidade}x atend. por ${m ? m.nome : 'desconhecido'}`
+        });
+    });
+
+    vendas.forEach(v => {
+        const prod = state.produtos.find(p => p.id === v.product_id);
+        const m = state.membros.find(x => x.id === v.team_member_id);
+        items.push({
+            tipo: "produto",
+            nome: prod ? prod.nome : "Produto",
+            colaborador: m ? m.nome : "Colaborador",
+            data: v.data,
+            valor: parseFloat(v.total),
+            desc: `${v.quantidade}x prod. vendido por ${m ? m.nome : 'desconhecido'}`
+        });
+    });
+
+    // Ordena decrescente por data
+    items.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    if (items.length === 0) {
+        container.innerHTML = `<div class="item-subtitle" style="text-align:center; padding: 20px;">Nenhuma atividade no período.</div>`;
+        return;
+    }
+
+    // Mostra os top 12 lançamentos na timeline
+    items.slice(0, 12).forEach(item => {
+        const el = document.createElement("div");
+        el.className = "timeline-item";
+        el.innerHTML = `
+            <div class="timeline-icon-wrapper">
+                <i data-lucide="${item.tipo === 'servico' ? 'scissors' : 'package'}" class="${item.tipo === 'servico' ? 'icon-cyan' : 'icon-purple'}"></i>
+            </div>
+            <div class="timeline-body">
+                <span class="timeline-title">${item.nome}</span>
+                <span class="timeline-desc">${item.desc}</span>
+                <span class="timeline-time">${formatDate(item.data)}</span>
+            </div>
+            <div class="timeline-side">
+                <span class="timeline-value text-green">+ ${formatBRL(item.valor)}</span>
+            </div>
+        `;
+        container.appendChild(el);
+    });
+
+    lucide.createIcons();
+}
+
+function viewStaffHistory(staffId) {
+    const member = state.membros.find(m => m.id === staffId);
+    if (!member) return;
+
+    document.getElementById("staff-history-title").textContent = `Lançamentos de ${member.nome}`;
+    const listEl = document.getElementById("staff-history-list");
+    listEl.innerHTML = "";
+
+    // Filtra logs do colaborador baseado no período configurado no gestor
+    const period = document.getElementById("manager-period-select").value;
+    
+    const activeLanc = state.lancamentos.filter(l => !l.cancelado && l.team_member_id === staffId);
+    const staffLanc = filterByPeriod(activeLanc, "data_hora", period, "manager");
+    
+    const activeSales = state.vendas.filter(v => v.team_member_id === staffId);
+    const staffSales = filterByPeriod(activeSales, "data", period, "manager");
+
+    const items = [];
+    staffLanc.forEach(l => {
+        const serv = state.servicos.find(s => s.id === l.service_id);
+        items.push({
+            tipo: "servico",
+            nome: serv ? serv.nome : "Serviço",
+            data: l.data_hora,
+            valor: parseFloat(l.valor) * parseInt(l.quantidade),
+            comissao: (parseFloat(l.valor) * parseInt(l.quantidade)) * (member.taxa_comissao / 100),
+            desc: `${l.quantidade}x atend. (${formatDate(l.data_hora)})`
+        });
+    });
+
+    staffSales.forEach(v => {
+        const prod = state.produtos.find(p => p.id === v.product_id);
+        items.push({
+            tipo: "produto",
+            nome: prod ? prod.nome : "Produto",
+            data: v.data,
+            valor: parseFloat(v.total),
+            comissao: parseFloat(v.total) * 0.10,
+            desc: `${v.quantidade}x prod. (${formatDate(v.data)})`
+        });
+    });
+
+    items.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    if (items.length === 0) {
+        listEl.innerHTML = `<div class="item-subtitle" style="text-align:center; padding: 20px;">Nenhuma atividade no período para este colaborador.</div>`;
+    } else {
+        items.forEach(item => {
+            const el = document.createElement("div");
+            el.className = "timeline-item";
+            el.style.background = "rgba(255, 255, 255, 0.01)";
+            el.innerHTML = `
+                <div class="timeline-icon-wrapper">
+                    <i data-lucide="${item.tipo === 'servico' ? 'scissors' : 'package'}" class="${item.tipo === 'servico' ? 'icon-cyan' : 'icon-purple'}"></i>
+                </div>
+                <div class="timeline-body">
+                    <span class="timeline-title">${item.nome}</span>
+                    <span class="timeline-desc">${item.desc}</span>
+                    <span class="timeline-time" style="color:var(--color-green);">Comissão: ${formatBRL(item.comissao)}</span>
+                </div>
+                <div class="timeline-side">
+                    <span class="timeline-value">+ ${formatBRL(item.valor)}</span>
+                </div>
+            `;
+            listEl.appendChild(el);
+        });
+    }
+
+    openModal("modal-staff-history");
+    lucide.createIcons();
+}
+
+window.viewStaffHistory = viewStaffHistory;
 
 // --- UTILITY FORMATTERS ---
 function formatBRL(value) {

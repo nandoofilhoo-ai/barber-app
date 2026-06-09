@@ -61,8 +61,16 @@
                             <option value="semana">Esta Semana</option>
                             <option value="mes" selected>Este Mês</option>
                             <option value="ano">Este Ano</option>
+                            <option value="custom">Customizado</option>
                         </select>
                     </div>
+                </div>
+                
+                <!-- Custom Period Inputs -->
+                <div class="custom-date-container hidden" id="dashboard-custom-dates">
+                    <input type="date" id="dashboard-date-start" class="styled-date-input">
+                    <span class="date-sep">a</span>
+                    <input type="date" id="dashboard-date-end" class="styled-date-input">
                 </div>
 
                 <!-- Main Progress Wheel (Inspired by Visual References) -->
@@ -120,6 +128,39 @@
                 <div class="insights-container" id="insights-container">
                     <!-- Dynamic insights inject here -->
                 </div>
+
+                <!-- Gestor Extended KPIs (Visible only to Gestor) -->
+                <div class="metrics-grid hidden" id="gestor-extended-kpis">
+                    <div class="metric-card glass-card">
+                        <div class="metric-header">
+                            <span class="title">Lucro s/ Produtos</span>
+                            <i data-lucide="percent" class="icon icon-purple"></i>
+                        </div>
+                        <div class="value" id="kpi-lucro-produtos">R$ 0,00</div>
+                        <div class="sub-label" id="kpi-lucro-produtos-sub">0 produtos</div>
+                    </div>
+                    <div class="metric-card glass-card">
+                        <div class="metric-header">
+                            <span class="title">Ticket Médio</span>
+                            <i data-lucide="coins" class="icon icon-cyan"></i>
+                        </div>
+                        <div class="value" id="kpi-ticket-medio">R$ 0,00</div>
+                        <div class="sub-label">Faturamento / Atendimentos</div>
+                    </div>
+                </div>
+
+                <!-- Gestor Sections (Visible only to Gestor) -->
+                <div class="hidden" id="gestor-sections">
+                    <div class="section-title">Rendimento por Profissional</div>
+                    <div class="glass-card" id="ranking-barbers-container" style="display:flex; flex-direction:column; gap:12px; margin-bottom: 0;">
+                        <!-- Horizontal progress bars list -->
+                    </div>
+
+                    <div class="section-title">Linha do Tempo de Atividades</div>
+                    <div class="scroll-list" id="gestor-business-timeline">
+                        <!-- Business timeline events -->
+                    </div>
+                </div>
             </section>
 
             <!-- VIEW: SERVIÇOS (Gestão de Serviços) -->
@@ -165,6 +206,24 @@
                 
                 <!-- Sub-view: BARBEIRO (Privada) -->
                 <div id="subview-barber-private" class="subview-pane">
+                    <!-- Period Selector for Barbeiro -->
+                    <div class="period-bar glass-card" style="margin-bottom: 12px;">
+                        <span>Período:</span>
+                        <select id="barber-period-select" class="styled-select-inline">
+                            <option value="hoje">Hoje</option>
+                            <option value="semana">Esta Semana</option>
+                            <option value="mes" selected>Este Mês</option>
+                            <option value="ano">Este Ano</option>
+                            <option value="custom">Customizado</option>
+                        </select>
+                    </div>
+
+                    <div class="custom-date-container hidden" id="barber-custom-dates" style="margin-top: -4px; margin-bottom: 16px;">
+                        <input type="date" id="barber-date-start" class="styled-date-input">
+                        <span class="date-sep">a</span>
+                        <input type="date" id="barber-date-end" class="styled-date-input">
+                    </div>
+
                     <div class="barber-profile-card glass-card">
                         <div class="profile-avatar-large">
                             <span class="avatar-initials" id="barber-avatar-initials">CP</span>
@@ -206,14 +265,21 @@
                     </div>
 
                     <!-- Period Selector for Commissions -->
-                    <div class="period-bar glass-card">
+                    <div class="period-bar glass-card" style="margin-bottom: 12px;">
                         <span>Período de Apuração:</span>
                         <select id="manager-period-select" class="styled-select-inline">
                             <option value="hoje">Hoje</option>
                             <option value="semana">Esta Semana</option>
                             <option value="mes" selected>Este Mês</option>
                             <option value="ano">Este Ano</option>
+                            <option value="custom">Customizado</option>
                         </select>
+                    </div>
+
+                    <div class="custom-date-container hidden" id="manager-custom-dates" style="margin-top: -4px; margin-bottom: 16px;">
+                        <input type="date" id="manager-date-start" class="styled-date-input">
+                        <span class="date-sep">a</span>
+                        <input type="date" id="manager-date-end" class="styled-date-input">
                     </div>
 
                     <div class="section-title">Valores de Comissões e Repasses</div>
@@ -601,6 +667,21 @@
                 <div class="form-row">
                     <button class="btn btn-outline col-6" id="demo-load-btn">Resetar Demo</button>
                     <button class="btn btn-outline col-6 btn-outline-danger" id="demo-clear-btn">Limpar Tudo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DETALHE DE LANÇAMENTOS DO COLABORADOR (AUDITÁVEL) -->
+    <div class="modal-backdrop hidden" id="modal-staff-history">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="staff-history-title">Histórico de Lançamentos</h3>
+                <button class="close-modal-btn" id="close-staff-history-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="scroll-list" id="staff-history-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Injected dynamically -->
                 </div>
             </div>
         </div>
