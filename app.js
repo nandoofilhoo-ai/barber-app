@@ -62,17 +62,26 @@ let state = {
     vendas: [],
     config: {
         activeUserId: "gestor", // "gestor" ou id do membro
-        sheetsUrl: "https://script.google.com/macros/s/AKfycbyjtbREM0uCmvf3WjX57qUZO8F06tYQoNXdDzRbc-M7BamU4Tw38ymCmhTUJMPEtkWiFw/exec",
+        sheetsUrl: import.meta.env.VITE_SHEETS_URL || "",
         limiteEstoqueBaixo: 3
     }
 };
 
 // --- DATA INITIALIZATION & STORE ---
 function initApp() {
-    // Carrega dados do LocalStorage ou define do Seed
     if (localStorage.getItem("drank_state")) {
         try {
             state = JSON.parse(localStorage.getItem("drank_state"));
+            
+            // Garante uso do sheetsUrl definido no .env
+            if (import.meta.env.VITE_SHEETS_URL) {
+                state.config.sheetsUrl = import.meta.env.VITE_SHEETS_URL;
+            }
+
+            // Evita ficar sem membros e trancado fora do app (caso sincronize com planilha vazia)
+            if (!state.membros || state.membros.length === 0) {
+                state.membros = [...SEED_MEMBROS];
+            }
             
             // Corrige Fernando Martins cargo antigo de gerente para admin se necessário
             const fernando = state.membros.find(m => m.id === "m-1");
@@ -160,7 +169,7 @@ function resetToSeed() {
     if (!state.config) {
         state.config = {
             activeUserId: "gestor",
-            sheetsUrl: "https://script.google.com/macros/s/AKfycbyjtbREM0uCmvf3WjX57qUZO8F06tYQoNXdDzRbc-M7BamU4Tw38ymCmhTUJMPEtkWiFw/exec",
+            sheetsUrl: import.meta.env.VITE_SHEETS_URL || "",
             limiteEstoqueBaixo: 3
         };
     }
