@@ -62,7 +62,7 @@ let state = {
     vendas: [],
     config: {
         activeUserId: "gestor", // "gestor" ou id do membro
-        sheetsUrl: "",
+        sheetsUrl: "https://script.google.com/macros/s/AKfycbyjtbREM0uCmvf3WjX57qUZO8F06tYQoNXdDzRbc-M7BamU4Tw38ymCmhTUJMPEtkWiFw/exec",
         limiteEstoqueBaixo: 3
     }
 };
@@ -160,7 +160,7 @@ function resetToSeed() {
     if (!state.config) {
         state.config = {
             activeUserId: "gestor",
-            sheetsUrl: "",
+            sheetsUrl: "https://script.google.com/macros/s/AKfycbyjtbREM0uCmvf3WjX57qUZO8F06tYQoNXdDzRbc-M7BamU4Tw38ymCmhTUJMPEtkWiFw/exec",
             limiteEstoqueBaixo: 3
         };
     }
@@ -223,12 +223,12 @@ async function postToSheets(aba, action, rowData, id = null) {
         };
         if (id) payload.id = id;
 
-        // Apps Script requer redirect, então fetch envia no-cors ou lida com redirect de forma transparente
+        // Envia como text/plain para evitar preflight (OPTIONS) de CORS no Apps Script
         const response = await fetch(url, {
             method: "POST",
             mode: "cors",
             headers: {
-                "Content-Type": "application/json",
+                "Content-Type": "text/plain",
             },
             body: JSON.stringify(payload)
         });
