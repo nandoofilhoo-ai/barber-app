@@ -1,0 +1,22 @@
+{
+  "name": "drank-barber-erp",
+  "version": "1.0.0",
+  "description": "Web App Mobile ERP para Barbearia com Banco de Dados no Google Sheets",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx vite",
+    "build": "npx vite build",
+    "preview": "npx vite preview"
+  },
+  "keywords": [
+    "barber",
+    "erp",
+    "google-sheets",
+    "mobile"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}

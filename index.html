@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drank - Barbearia ERP & Gestão</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- CSS Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Background Blur Glows (Decorative for Desktop Mockup view) -->
+    <div class="bg-glow bg-glow-purple"></div>
+    <div class="bg-glow bg-glow-blue"></div>
+
+    <!-- Main Container: Desktop Phone Frame Mockup -->
+    <div class="phone-frame">
+        <!-- Phone Status Bar -->
+        <div class="status-bar">
+            <span class="time" id="status-time">19:41</span>
+            <div class="status-icons">
+                <i data-lucide="signal" class="status-icon"></i>
+                <i data-lucide="wifi" class="status-icon"></i>
+                <i data-lucide="battery" class="status-icon"></i>
+            </div>
+        </div>
+
+        <!-- App Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-circle">
+                    <span class="logo-symbol">⚡</span>
+                </div>
+                <div class="header-titles">
+                    <h1 class="barber-name">Drank</h1>
+                    <span class="sub-title" id="active-profile-name">Carregando...</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="settings-btn" id="open-settings-btn" title="Configurações">
+                    <i data-lucide="sliders-horizontal"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Views Container -->
+        <main class="app-body" id="app-body">
+            
+            <!-- VIEW: MENU INICIAL (Métricas & KPIs Gerais) -->
+            <section class="view-tab active" id="view-dashboard">
+                <div class="view-header-inline">
+                    <h2>Visão Geral</h2>
+                    <div class="period-selector">
+                        <select id="dashboard-period" class="styled-select">
+                            <option value="hoje">Hoje</option>
+                            <option value="semana">Esta Semana</option>
+                            <option value="mes" selected>Este Mês</option>
+                            <option value="ano">Este Ano</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Main Progress Wheel (Inspired by Visual References) -->
+                <div class="chart-wheel-container glass-card">
+                    <div class="wheel-box">
+                        <svg class="progress-ring" width="180" height="180">
+                            <circle class="progress-ring-bg" stroke="rgba(255,255,255,0.05)" stroke-width="12" fill="transparent" r="70" cx="90" cy="90"/>
+                            <circle class="progress-ring-bar" id="dashboard-progress-ring" stroke="url(#ring-gradient)" stroke-width="12" stroke-linecap="round" fill="transparent" r="70" cx="90" cy="90" stroke-dasharray="439.8" stroke-dashoffset="439.8"/>
+                            <defs>
+                                <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#8b5cf6" />
+                                    <stop offset="50%" stop-color="#06b6d4" />
+                                    <stop offset="100%" stop-color="#10b981" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="wheel-text">
+                            <span class="wheel-label">Faturamento</span>
+                            <span class="wheel-val" id="kpi-faturamento-total">R$ 0,00</span>
+                            <span class="wheel-sub" id="kpi-faturamento-sub">0 atendimentos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-card glass-card">
+                        <div class="metric-header">
+                            <span class="title">Serviços</span>
+                            <i data-lucide="scissors" class="icon icon-cyan"></i>
+                        </div>
+                        <div class="value" id="kpi-valor-servicos">R$ 0,00</div>
+                        <div class="sub-label" id="kpi-qtd-servicos">0 lançamentos</div>
+                    </div>
+                    <div class="metric-card glass-card">
+                        <div class="metric-header">
+                            <span class="title">Produtos</span>
+                            <i data-lucide="package" class="icon icon-purple"></i>
+                        </div>
+                        <div class="value" id="kpi-valor-produtos">R$ 0,00</div>
+                        <div class="sub-label" id="kpi-qtd-produtos">0 vendas</div>
+                    </div>
+                    <div class="metric-card glass-card span-2">
+                        <div class="metric-header">
+                            <span class="title">Lucro Líquido Estimado</span>
+                            <i data-lucide="trending-up" class="icon icon-green"></i>
+                        </div>
+                        <div class="value-large text-green" id="kpi-lucro-estimado">R$ 0,00</div>
+                        <div class="sub-label">Deduzidos os custos de compra de produtos e comissões</div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Insights Section -->
+                <div class="section-title">Insights do Período</div>
+                <div class="insights-container" id="insights-container">
+                    <!-- Dynamic insights inject here -->
+                </div>
+            </section>
+
+            <!-- VIEW: SERVIÇOS (Gestão de Serviços) -->
+            <section class="view-tab" id="view-services">
+                <div class="view-header-inline">
+                    <h2>Serviços</h2>
+                    <button class="action-btn-mini" id="add-service-btn">
+                        <i data-lucide="plus"></i> Novo Serviço
+                    </button>
+                </div>
+
+                <div class="search-bar-container">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="service-search-input" placeholder="Buscar serviço por nome ou categoria..." class="search-input">
+                </div>
+
+                <div class="scroll-list" id="services-list-container">
+                    <!-- Services cards injected here -->
+                </div>
+            </section>
+
+            <!-- VIEW: PRODUTOS (Gestão de Produtos e Estoque) -->
+            <section class="view-tab" id="view-products">
+                <div class="view-header-inline">
+                    <h2>Produtos</h2>
+                    <button class="action-btn-mini" id="add-product-btn">
+                        <i data-lucide="plus"></i> Novo Produto
+                    </button>
+                </div>
+
+                <div class="search-bar-container">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="product-search-input" placeholder="Buscar produto..." class="search-input">
+                </div>
+
+                <div class="scroll-list" id="products-list-container">
+                    <!-- Products cards injected here -->
+                </div>
+            </section>
+
+            <!-- VIEW: MENU DO BARBEIRO / COLABORADORES (Visão Privada vs Gestão) -->
+            <section class="view-tab" id="view-barber-menu">
+                
+                <!-- Sub-view: BARBEIRO (Privada) -->
+                <div id="subview-barber-private" class="subview-pane">
+                    <div class="barber-profile-card glass-card">
+                        <div class="profile-avatar-large">
+                            <span class="avatar-initials" id="barber-avatar-initials">CP</span>
+                        </div>
+                        <h3 id="barber-profile-name">Cavin Piterson</h3>
+                        <span class="profile-badge badge-green" id="barber-profile-role">Barbeiro</span>
+                        
+                        <div class="profile-stats-row">
+                            <div class="p-stat">
+                                <span class="num" id="barber-stat-cortes">0</span>
+                                <span class="label">Cortes</span>
+                            </div>
+                            <div class="p-stat">
+                                <span class="num" id="barber-stat-produtos">0</span>
+                                <span class="label">Vendas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="commission-glow-card glass-card">
+                        <div class="label-heading">Total a Receber</div>
+                        <div class="amount-accent text-green" id="barber-commission-amount">R$ 0,00</div>
+                        <div class="subtext">Comissão calculada do período atual</div>
+                    </div>
+
+                    <div class="section-title">Histórico de Lançamentos Recentes</div>
+                    <div class="scroll-list list-mini" id="barber-personal-history">
+                        <!-- Personal history items inject here -->
+                    </div>
+                </div>
+
+                <!-- Sub-view: GESTOR (Geral de Colaboradores e Pagamentos) -->
+                <div id="subview-manager" class="subview-pane hidden">
+                    <div class="view-header-inline">
+                        <h2>Gestão de Equipe</h2>
+                        <button class="action-btn-mini" id="add-member-btn">
+                            <i data-lucide="user-plus"></i> Novo Membro
+                        </button>
+                    </div>
+
+                    <!-- Period Selector for Commissions -->
+                    <div class="period-bar glass-card">
+                        <span>Período de Apuração:</span>
+                        <select id="manager-period-select" class="styled-select-inline">
+                            <option value="hoje">Hoje</option>
+                            <option value="semana">Esta Semana</option>
+                            <option value="mes" selected>Este Mês</option>
+                            <option value="ano">Este Ano</option>
+                        </select>
+                    </div>
+
+                    <div class="section-title">Valores de Comissões e Repasses</div>
+                    <div class="payout-list" id="manager-payout-list">
+                        <!-- Employee payout lists injection -->
+                    </div>
+
+                    <div class="section-title">Equipe Cadastrada</div>
+                    <div class="scroll-list" id="manager-team-list">
+                        <!-- Team member cards injection -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Dynamic Success Toast Screen -->
+        <div class="success-screen hidden" id="success-screen">
+            <div class="success-content">
+                <div class="success-icon-ring animate-scale">
+                    <i data-lucide="check"></i>
+                </div>
+                <h3>Lançamento Confirmado!</h3>
+                <p id="success-message">O registro foi salvo com sucesso.</p>
+                <button class="btn btn-green close-success-btn" id="close-success-btn">Fechar</button>
+            </div>
+        </div>
+
+        <!-- Navigation Bottom Bar (Sticky) -->
+        <nav class="nav-bar">
+            <button class="nav-item active" data-target="view-dashboard">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Início</span>
+            </button>
+            <button class="nav-item" data-target="view-services">
+                <i data-lucide="scissors"></i>
+                <span>Serviços</span>
+            </button>
+            
+            <!-- Highlighted Plus Quick Action Button -->
+            <button class="nav-item-fab" id="quick-action-fab" title="Lançar Novo">
+                <div class="fab-circle">
+                    <i data-lucide="plus"></i>
+                </div>
+            </button>
+
+            <button class="nav-item" data-target="view-products">
+                <i data-lucide="package"></i>
+                <span>Produtos</span>
+            </button>
+            <button class="nav-item" data-target="view-barber-menu" id="nav-barber-menu">
+                <i data-lucide="user"></i>
+                <span id="nav-barber-text">Barbeiro</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODAL: LANÇAMENTO RÁPIDO (+) -->
+    <div class="modal-backdrop hidden" id="modal-launcher">
+        <div class="modal-card bottom-sheet">
+            <div class="modal-drag-handle"></div>
+            <div class="modal-header">
+                <h3>Novo Lançamento</h3>
+                <button class="close-modal-btn" id="close-launcher-btn"><i data-lucide="x"></i></button>
+            </div>
+
+            <!-- Segmented Control (Lançar Serviço vs Vender Produto) -->
+            <div class="segmented-control">
+                <button class="segment-btn active" id="segment-service">Lançar Serviço</button>
+                <button class="segment-btn" id="segment-product">Vender Produto</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- FORM: SERVICE ENTRY -->
+                <form id="form-launch-service" class="launch-form">
+                    <div class="form-group">
+                        <label for="launch-service-barber">Quem realizou o serviço? *</label>
+                        <select id="launch-service-barber" class="form-control" required>
+                            <!-- Injected dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="launch-service-item">Qual serviço? *</label>
+                        <select id="launch-service-item" class="form-control" required>
+                            <!-- Injected dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="launch-service-qty">Quantidade *</label>
+                            <input type="number" id="launch-service-qty" class="form-control" min="1" value="1" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="launch-service-custom-price">Valor Unitário R$ (Opcional)</label>
+                            <input type="number" step="0.01" id="launch-service-custom-price" class="form-control" placeholder="Padrão do serviço">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="launch-service-date">Data e Hora *</label>
+                        <input type="datetime-local" id="launch-service-date" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="launch-service-obs">Observações (Opcional)</label>
+                        <input type="text" id="launch-service-obs" class="form-control" placeholder="Ex: Cliente fidelidade, cortesia...">
+                    </div>
+
+                    <button type="submit" class="btn btn-green w-100 mt-2">Confirmar Lançamento</button>
+                </form>
+
+                <!-- FORM: PRODUCT SALE -->
+                <form id="form-launch-sale" class="launch-form hidden">
+                    <div class="form-group">
+                        <label for="launch-sale-product">Produto *</label>
+                        <select id="launch-sale-product" class="form-control" required>
+                            <!-- Injected dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="launch-sale-qty">Quantidade *</label>
+                            <input type="number" id="launch-sale-qty" class="form-control" min="1" value="1" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="launch-sale-barber">Vendedor (Comissionado) *</label>
+                            <select id="launch-sale-barber" class="form-control" required>
+                                <!-- Injected dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="launch-sale-date">Data e Hora *</label>
+                        <input type="datetime-local" id="launch-sale-date" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="launch-sale-obs">Observações (Opcional)</label>
+                        <input type="text" id="launch-sale-obs" class="form-control" placeholder="Observações de estoque ou cliente...">
+                    </div>
+
+                    <button type="submit" class="btn btn-green w-100 mt-2">Registrar Venda</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD/EDIT TEAM MEMBER -->
+    <div class="modal-backdrop hidden" id="modal-member">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="member-modal-title">Novo Membro da Equipe</h3>
+                <button class="close-modal-btn" id="close-member-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-member">
+                    <input type="hidden" id="member-edit-id">
+                    
+                    <div class="form-group">
+                        <label for="member-nome">Nome Completo *</label>
+                        <input type="text" id="member-nome" class="form-control" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="member-cpf">CPF *</label>
+                            <input type="text" id="member-cpf" class="form-control" placeholder="000.000.000-00" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="member-telefone">Telefone *</label>
+                            <input type="text" id="member-telefone" class="form-control" placeholder="(00) 00000-0000" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="member-email">E-mail *</label>
+                        <input type="email" id="member-email" class="form-control" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="member-cargo">Cargo *</label>
+                            <select id="member-cargo" class="form-control" required>
+                                <option value="barbeiro">Barbeiro</option>
+                                <option value="gerente">Gerente</option>
+                                <option value="aprendiz">Aprendiz</option>
+                                <option value="auxiliar">Auxiliar</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="member-comissao">Taxa de Comissão (%) *</label>
+                            <input type="number" id="member-comissao" class="form-control" min="0" max="100" value="50" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="member-admissao">Data de Admissão *</label>
+                            <input type="date" id="member-admissao" class="form-control" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="member-status">Status *</label>
+                            <select id="member-status" class="form-control" required>
+                                <option value="ativo">Ativo</option>
+                                <option value="inativo">Inativo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-purple w-100 mt-2">Salvar Colaborador</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD/EDIT SERVICE -->
+    <div class="modal-backdrop hidden" id="modal-service">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="service-modal-title">Novo Serviço</h3>
+                <button class="close-modal-btn" id="close-service-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-service">
+                    <input type="hidden" id="service-edit-id">
+                    
+                    <div class="form-group">
+                        <label for="service-nome">Nome do Serviço *</label>
+                        <input type="text" id="service-nome" class="form-control" placeholder="Ex: Cabelo + Barba" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="service-descricao">Descrição Curta *</label>
+                        <input type="text" id="service-descricao" class="form-control" placeholder="Ex: Corte social com tesoura e toalha quente" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="service-valor">Valor Base (R$) *</label>
+                            <input type="number" step="0.01" id="service-valor" class="form-control" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="service-tempo">Tempo Estimado (min) *</label>
+                            <input type="number" id="service-tempo" class="form-control" value="30" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="service-categoria">Categoria *</label>
+                            <select id="service-categoria" class="form-control" required>
+                                <option value="cabelo">Cabelo</option>
+                                <option value="barba">Barba</option>
+                                <option value="complementar">Complementar</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="service-compartilhado">Compartilhável? *</label>
+                            <select id="service-compartilhado" class="form-control" required>
+                                <option value="sim">Sim</option>
+                                <option value="nao">Não</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-cyan w-100 mt-2">Salvar Serviço</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD/EDIT PRODUCT -->
+    <div class="modal-backdrop hidden" id="modal-product">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="product-modal-title">Novo Produto</h3>
+                <button class="close-modal-btn" id="close-product-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-product">
+                    <input type="hidden" id="product-edit-id">
+                    
+                    <div class="form-group">
+                        <label for="product-nome">Nome do Produto *</label>
+                        <input type="text" id="product-nome" class="form-control" placeholder="Ex: Pomada Efeito Matte" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="product-marca">Marca *</label>
+                            <input type="text" id="product-marca" class="form-control" placeholder="Ex: BeardBrand" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="product-categoria">Categoria *</label>
+                            <select id="product-categoria" class="form-control" required>
+                                <option value="pomada">Pomadas / Cerias</option>
+                                <option value="oleo">Óleos / Shampoos</option>
+                                <option value="acessorio">Acessórios</option>
+                                <option value="outros">Outros</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="product-preco-venda">Preço de Venda (R$) *</label>
+                            <input type="number" step="0.01" id="product-preco-venda" class="form-control" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="product-preco-compra">Preço de Compra (R$)</label>
+                            <input type="number" step="0.01" id="product-preco-compra" class="form-control" placeholder="Custo">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="product-estoque">Estoque Inicial *</label>
+                            <input type="number" id="product-estoque" class="form-control" value="10" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="product-unidade">Unidade *</label>
+                            <select id="product-unidade" class="form-control" required>
+                                <option value="unid">Unidade</option>
+                                <option value="ml">Mililitros (ml)</option>
+                                <option value="g">Gramas (g)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-purple w-100 mt-2">Salvar Produto</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CONFIGURAÇÕES (URL do Google Sheets, Alerta de Estoque e Roles) -->
+    <div class="modal-backdrop hidden" id="modal-settings">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Configurações do ERP</h3>
+                <button class="close-modal-btn" id="close-settings-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Simulation Profile Switcher -->
+                <div class="section-title-modal">Perfil de Teste (Simular Acesso)</div>
+                <div class="form-group">
+                    <label for="settings-role-select">Visualizar Aplicativo Como:</label>
+                    <select id="settings-role-select" class="form-control">
+                        <!-- Injected dynamic employees list + Gestor Option -->
+                    </select>
+                </div>
+
+                <hr class="separator">
+
+                <!-- Google Sheets DB URL -->
+                <div class="section-title-modal">Banco de Dados Cloud</div>
+                <div class="form-group">
+                    <label for="settings-sheets-url">Google Apps Script Web App URL</label>
+                    <input type="text" id="settings-sheets-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+                    <span class="help-text">Se vazio, o app salva os dados apenas no seu navegador (offline local).</span>
+                </div>
+                <div class="sync-actions">
+                    <button class="btn btn-cyan w-100" id="sync-sheets-btn">
+                        <i data-lucide="refresh-cw" class="icon-spin-hover"></i> Sincronizar com Planilha
+                    </button>
+                </div>
+
+                <hr class="separator">
+
+                <!-- Low Stock Alert -->
+                <div class="section-title-modal">Alertas de Operação</div>
+                <div class="form-group">
+                    <label for="settings-stock-limit">Alerta de Estoque Baixo (Quantidade)</label>
+                    <input type="number" id="settings-stock-limit" class="form-control" min="1" value="3">
+                </div>
+
+                <hr class="separator">
+
+                <!-- Demo Tools -->
+                <div class="section-title-modal">Ferramentas de Demonstração</div>
+                <div class="form-row">
+                    <button class="btn btn-outline col-6" id="demo-load-btn">Resetar Demo</button>
+                    <button class="btn btn-outline col-6 btn-outline-danger" id="demo-clear-btn">Limpar Tudo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Entrypoint -->
+    <script src="app.js"></script>
+</body>
+</html>
