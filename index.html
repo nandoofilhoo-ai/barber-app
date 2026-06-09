@@ -20,6 +20,32 @@
 
     <!-- Main Container: Desktop Phone Frame Mockup -->
     <div class="phone-frame">
+        <!-- TELA DE LOGIN OVERLAY -->
+        <div class="login-screen" id="login-screen">
+            <div class="login-container">
+                <div class="logo-pulse">
+                    <span class="logo-symbol-large">⚡</span>
+                </div>
+                <h2>Drank</h2>
+                <p class="login-subtitle">ERP & Gestão de Barbearia</p>
+                
+                <form id="form-login" class="login-form">
+                    <div class="form-group">
+                        <label for="login-email">E-mail de Acesso</label>
+                        <input type="email" id="login-email" class="form-control" placeholder="Ex: cavin@drank.com.br" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Senha</label>
+                        <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-cyan w-100 mt-2">Entrar no Sistema</button>
+                </form>
+                <div class="demo-login-info">
+                    <span><strong>Demo Gestor:</strong> admin@drank.com.br / admin123</span>
+                    <span><strong>Demo Barbeiro:</strong> cavin@drank.com.br / cavin123</span>
+                </div>
+            </div>
+        </div>
         <!-- Phone Status Bar -->
         <div class="status-bar">
             <span class="time" id="status-time">19:41</span>
@@ -41,7 +67,10 @@
                     <span class="sub-title" id="active-profile-name">Carregando...</span>
                 </div>
             </div>
-            <div class="header-right">
+            <div class="header-right" style="display:flex; gap: 8px;">
+                <button class="settings-btn" id="logout-btn" title="Sair" style="color: var(--color-red);">
+                    <i data-lucide="log-out"></i>
+                </button>
                 <button class="settings-btn" id="open-settings-btn" title="Configurações">
                     <i data-lucide="sliders-horizontal"></i>
                 </button>
@@ -120,6 +149,24 @@
                         </div>
                         <div class="value-large text-green" id="kpi-lucro-estimado">R$ 0,00</div>
                         <div class="sub-label">Deduzidos os custos de compra de produtos e comissões</div>
+                    </div>
+                </div>
+
+                <!-- Comparative Timeline Section -->
+                <div class="section-title" id="comparative-timeline-title">Comparativo com Período Anterior</div>
+                <div class="glass-card" id="comparative-timeline-section" style="padding: 16px; margin-bottom: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                        <span style="font-size:12px; color:var(--text-secondary); font-weight:600;">Métrica de Comparação:</span>
+                        <select id="timeline-metric-select" class="styled-select-inline" style="color: var(--color-cyan); font-size:12px; background: transparent; border: none; cursor: pointer; outline: none;">
+                            <option value="faturamento">Faturamento Total</option>
+                            <option value="servicos">Volume de Serviços</option>
+                            <option value="vendas">Venda de Produtos</option>
+                            <option value="lucro">Lucro Líquido</option>
+                        </select>
+                    </div>
+                    
+                    <div id="comparison-graph-container" style="display:flex; flex-direction:column; gap: 14px;">
+                        <!-- Comparative progress bars dynamic content -->
                     </div>
                 </div>
 
@@ -463,12 +510,18 @@
                         <input type="email" id="member-email" class="form-control" required>
                     </div>
 
+                    <div class="form-group">
+                        <label for="member-senha">Senha de Acesso *</label>
+                        <input type="password" id="member-senha" class="form-control" placeholder="Mínimo 6 caracteres" required>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group col-6">
                             <label for="member-cargo">Cargo *</label>
                             <select id="member-cargo" class="form-control" required>
                                 <option value="barbeiro">Barbeiro</option>
-                                <option value="gerente">Gerente</option>
+                                <option value="gerente">Gestor</option>
+                                <option value="admin">Administrador</option>
                                 <option value="aprendiz">Aprendiz</option>
                                 <option value="auxiliar">Auxiliar</option>
                             </select>

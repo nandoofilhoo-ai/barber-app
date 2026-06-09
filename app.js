@@ -4,11 +4,12 @@
 
 // --- SEED DATA (DADOS INICIAIS DE TESTE) ---
 const SEED_MEMBROS = [
-    { id: "m-1", nome: "Fernando Martins", cpf: "111.111.111-11", telefone: "(75) 99999-1111", email: "fernando@drank.com.br", cargo: "gerente", data_admissao: "2025-01-15", status: "ativo", taxa_comissao: 50 },
-    { id: "m-2", nome: "Cavin Piterson", cpf: "222.222.222-22", telefone: "(75) 99999-2222", email: "cavin@drank.com.br", cargo: "barbeiro", data_admissao: "2025-02-10", status: "ativo", taxa_comissao: 40 },
-    { id: "m-3", nome: "Karina Souza", cpf: "333.333.333-33", telefone: "(75) 99999-3333", email: "karina@drank.com.br", cargo: "barbeiro", data_admissao: "2025-03-20", status: "ativo", taxa_comissao: 45 },
-    { id: "m-4", nome: "Drank Barbeiro", cpf: "444.444.444-44", telefone: "(75) 99999-4444", email: "drank_b@drank.com.br", cargo: "barbeiro", data_admissao: "2025-01-01", status: "ativo", taxa_comissao: 50 },
-    { id: "m-5", nome: "Bruno Auxiliar", cpf: "555.555.555-55", telefone: "(75) 99999-5555", email: "bruno@drank.com.br", cargo: "auxiliar", data_admissao: "2025-05-01", status: "ativo", taxa_comissao: 10 }
+    { id: "m-1", nome: "Fernando Martins", cpf: "111.111.111-11", telefone: "(75) 99999-1111", email: "fernando@drank.com.br", cargo: "admin", data_admissao: "2025-01-15", status: "ativo", taxa_comissao: 50, senha: "admin123" },
+    { id: "m-2", nome: "Cavin Piterson", cpf: "222.222.222-22", telefone: "(75) 99999-2222", email: "cavin@drank.com.br", cargo: "barbeiro", data_admissao: "2025-02-10", status: "ativo", taxa_comissao: 40, senha: "cavin123" },
+    { id: "m-3", nome: "Karina Souza", cpf: "333.333.333-33", telefone: "(75) 99999-3333", email: "karina@drank.com.br", cargo: "barbeiro", data_admissao: "2025-03-20", status: "ativo", taxa_comissao: 45, senha: "karina123" },
+    { id: "m-4", nome: "Drank Barbeiro", cpf: "444.444.444-44", telefone: "(75) 99999-4444", email: "drank_b@drank.com.br", cargo: "barbeiro", data_admissao: "2025-01-01", status: "ativo", taxa_comissao: 50, senha: "drank123" },
+    { id: "m-5", nome: "Bruno Auxiliar", cpf: "555.555.555-55", telefone: "(75) 99999-5555", email: "bruno@drank.com.br", cargo: "auxiliar", data_admissao: "2025-05-01", status: "ativo", taxa_comissao: 10, senha: "bruno123" },
+    { id: "m-6", nome: "Lucas Gestor", cpf: "666.666.666-66", telefone: "(75) 99999-6666", email: "gestor@drank.com.br", cargo: "gerente", data_admissao: "2025-05-15", status: "ativo", taxa_comissao: 0, senha: "gestor123" }
 ];
 
 const SEED_SERVICOS = [
@@ -72,6 +73,32 @@ function initApp() {
     if (localStorage.getItem("drank_state")) {
         try {
             state = JSON.parse(localStorage.getItem("drank_state"));
+            
+            // Corrige Fernando Martins cargo antigo de gerente para admin se necessário
+            const fernando = state.membros.find(m => m.id === "m-1");
+            if (fernando && fernando.cargo === "gerente") {
+                fernando.cargo = "admin";
+            }
+
+            // Garante que o Lucas Gestor esteja no estado carregado
+            if (!state.membros.some(m => m.id === "m-6")) {
+                state.membros.push({ id: "m-6", nome: "Lucas Gestor", cpf: "666.666.666-66", telefone: "(75) 99999-6666", email: "gestor@drank.com.br", cargo: "gerente", data_admissao: "2025-05-15", status: "ativo", taxa_comissao: 0, senha: "gestor123" });
+            }
+
+            // Migração de estado antigo: garante senhas para todos os membros
+            let stateUpdated = false;
+            if (state && state.membros) {
+                state.membros.forEach(m => {
+                    if (!m.senha) {
+                        const seedMatch = SEED_MEMBROS.find(sm => sm.id === m.id || sm.email.toLowerCase() === m.email.toLowerCase());
+                        m.senha = seedMatch ? seedMatch.senha : "123456";
+                        stateUpdated = true;
+                    }
+                });
+            }
+            if (stateUpdated) {
+                saveState();
+            }
         } catch (e) {
             console.error("Erro ao ler localStorage, reiniciando dados.", e);
             resetToSeed();
@@ -97,6 +124,18 @@ function initApp() {
         const el = document.getElementById(id);
         if (el) el.value = formatDateYMD(now);
     });
+
+    // Verifica sessão ativa de login
+    const activeSession = sessionStorage.getItem("active_user_id");
+    const loginScreen = document.getElementById("login-screen");
+    
+    if (activeSession) {
+        state.config.activeUserId = activeSession;
+        if (loginScreen) loginScreen.classList.add("hidden");
+    } else {
+        state.config.activeUserId = null;
+        if (loginScreen) loginScreen.classList.remove("hidden");
+    }
 
     // Atualiza hora da barra de status simulada
     updateStatusTime();
@@ -278,10 +317,13 @@ function setupEventHandlers() {
         
         // Popular seletor de roles
         const selectRole = document.getElementById("settings-role-select");
-        selectRole.innerHTML = '<option value="gestor">Gestor / Administrador</option>';
+        selectRole.innerHTML = `
+            <option value="admin">Administrador (Fernando)</option>
+            <option value="m-6">Gestor (Lucas)</option>
+        `;
         state.membros.forEach(m => {
-            if (m.status === "ativo") {
-                selectRole.innerHTML += `<option value="${m.id}">${m.nome} (${m.cargo})</option>`;
+            if (m.status === "ativo" && m.cargo === "barbeiro") {
+                selectRole.innerHTML += `<option value="${m.id}">${m.nome} (Barbeiro)</option>`;
             }
         });
         selectRole.value = state.config.activeUserId;
@@ -343,6 +385,14 @@ function setupEventHandlers() {
     });
     document.getElementById("dashboard-date-start").addEventListener("change", () => renderDashboard());
     document.getElementById("dashboard-date-end").addEventListener("change", () => renderDashboard());
+    
+    // 10b. Dashboard Timeline Metric Selection
+    const timelineMetricSelect = document.getElementById("timeline-metric-select");
+    if (timelineMetricSelect) {
+        timelineMetricSelect.addEventListener("change", () => {
+            renderDashboard();
+        });
+    }
 
     // 11. Manager Period Selection
     document.getElementById("manager-period-select").addEventListener("change", () => {
@@ -426,6 +476,23 @@ function setupEventHandlers() {
         e.preventDefault();
         submitProductForm();
     });
+
+    // 21. Form Submission: Login
+    const formLogin = document.getElementById("form-login");
+    if (formLogin) {
+        formLogin.addEventListener("submit", (e) => {
+            e.preventDefault();
+            submitLoginForm();
+        });
+    }
+
+    // 22. Header Button: Logout
+    const logoutBtn = document.getElementById("logout-btn");
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            logoutUser();
+        });
+    }
 }
 
 function switchTab(viewId) {
@@ -556,17 +623,32 @@ function renderAll() {
 function updateActiveProfileHeader() {
     const profileNameEl = document.getElementById("active-profile-name");
     const navText = document.getElementById("nav-barber-text");
+    const settingsBtn = document.getElementById("open-settings-btn");
+    const navBarber = document.getElementById("nav-barber-menu");
     
-    if (state.config.activeUserId === "gestor") {
-        profileNameEl.textContent = "Fernando Martins (Gestor)";
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+
+    if (activeId === "admin" || (currentUser && currentUser.cargo === "admin")) {
+        const name = currentUser ? currentUser.nome : "Administrador";
+        profileNameEl.textContent = `${name} (Administrador)`;
         if (navText) navText.textContent = "Equipe";
+        if (settingsBtn) settingsBtn.classList.remove("hidden");
+        if (navBarber) navBarber.classList.remove("hidden");
+    } else if (activeId === "gestor" || (currentUser && currentUser.cargo === "gerente")) {
+        const name = currentUser ? currentUser.nome : "Gestor";
+        profileNameEl.textContent = `${name} (Gestor)`;
+        if (navText) navText.textContent = "Equipe";
+        if (settingsBtn) settingsBtn.classList.add("hidden");
+        if (navBarber) navBarber.classList.remove("hidden");
     } else {
-        const user = state.membros.find(m => m.id === state.config.activeUserId);
-        if (user) {
-            profileNameEl.textContent = `${user.nome} (${user.cargo})`;
+        if (currentUser) {
+            profileNameEl.textContent = `${currentUser.nome} (${currentUser.cargo})`;
             if (navText) navText.textContent = "Meu Painel";
+            if (settingsBtn) settingsBtn.classList.add("hidden");
         } else {
             profileNameEl.textContent = "Simulação";
+            if (settingsBtn) settingsBtn.classList.add("hidden");
         }
     }
 }
@@ -621,10 +703,22 @@ function renderDashboard() {
         customDatesEl.classList.add("hidden");
     }
 
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestorOrAdmin = activeId === "admin" || activeId === "gestor" || (currentUser && (currentUser.cargo === "admin" || currentUser.cargo === "gerente"));
+
     // Filtra lançamentos e vendas ativos (não cancelados)
-    const activeLancamentos = state.lancamentos.filter(l => !l.cancelado);
+    let activeLancamentos = state.lancamentos.filter(l => !l.cancelado);
+    let activeVendas = state.vendas;
+
+    // Se o barbeiro estiver visualizando, ele só vê os próprios números
+    if (!isGestorOrAdmin) {
+        activeLancamentos = activeLancamentos.filter(l => l.team_member_id === activeId);
+        activeVendas = activeVendas.filter(v => v.team_member_id === activeId);
+    }
+
     const periodLancamentos = filterByPeriod(activeLancamentos, "data_hora", period, "dashboard");
-    const periodVendas = filterByPeriod(state.vendas, "data", period, "dashboard");
+    const periodVendas = filterByPeriod(activeVendas, "data", period, "dashboard");
 
     // Faturamento de serviços
     let totalServicos = 0;
@@ -678,13 +772,12 @@ function renderDashboard() {
     document.getElementById("kpi-lucro-estimado").textContent = formatBRL(lucroLiquido);
 
     // Gestor/Gerente Extended Views and KPIs
-    const isGestor = state.config.activeUserId === "gestor";
     const gestorKPIs = document.getElementById("gestor-extended-kpis");
     const gestorSecs = document.getElementById("gestor-sections");
 
-    if (isGestor) {
-        gestorKPIs.classList.remove("hidden");
-        gestorSecs.classList.remove("hidden");
+    if (isGestorOrAdmin) {
+        if (gestorKPIs) gestorKPIs.classList.remove("hidden");
+        if (gestorSecs) gestorSecs.classList.remove("hidden");
 
         // KPI: Lucro real sobre produtos (faturamento produtos - custo compra)
         document.getElementById("kpi-lucro-produtos").textContent = formatBRL(totalLucroBrutoProdutos);
@@ -700,8 +793,8 @@ function renderDashboard() {
         // Renderiza Linha do Tempo de Atividades
         renderBusinessTimeline(periodLancamentos, periodVendas);
     } else {
-        gestorKPIs.classList.add("hidden");
-        gestorSecs.classList.add("hidden");
+        if (gestorKPIs) gestorKPIs.classList.add("hidden");
+        if (gestorSecs) gestorSecs.classList.add("hidden");
     }
 
     // Ajusta o progresso do anel circular (Meta de R$ 5.000 para hoje, R$ 10.000 semana, R$ 25.000 mês, R$ 200.000 ano)
@@ -721,6 +814,7 @@ function renderDashboard() {
         ringBar.style.strokeDashoffset = offset;
     }
 
+    renderComparisonGraph(period);
     renderInsights();
 }
 
@@ -897,7 +991,11 @@ function renderBarberMenu() {
     const subBarber = document.getElementById("subview-barber-private");
     const subManager = document.getElementById("subview-manager");
 
-    if (state.config.activeUserId === "gestor") {
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestorOrAdmin = activeId === "admin" || activeId === "gestor" || (currentUser && (currentUser.cargo === "admin" || currentUser.cargo === "gerente"));
+
+    if (isGestorOrAdmin) {
         subBarber.classList.add("hidden");
         subManager.classList.remove("hidden");
         renderManagerDashboard();
@@ -1255,22 +1353,38 @@ function submitMemberForm() {
     const cpf = document.getElementById("member-cpf").value.trim();
     const telefone = document.getElementById("member-telefone").value.trim();
     const email = document.getElementById("member-email").value.trim();
+    const senha = document.getElementById("member-senha").value.trim();
     const cargo = document.getElementById("member-cargo").value;
     const comissao = parseFloat(document.getElementById("member-comissao").value) || 0;
     const admissao = document.getElementById("member-admissao").value;
     const status = document.getElementById("member-status").value;
 
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestor = activeId === "gestor" || (currentUser && currentUser.cargo === "gerente");
+
+    if (isGestor && cargo === "admin") {
+        showToast("Gestores não possuem permissão para cadastrar Administradores.", "error");
+        return;
+    }
+
     const dataMember = {
         nome, cpf, telefone, email, cargo,
         taxa_comissao: comissao,
         data_admissao: admissao,
-        status
+        status,
+        senha: senha || "123456" // fallback
     };
 
     if (id) {
         // Edit mode
         const index = state.membros.findIndex(m => m.id === id);
         if (index !== -1) {
+            // Se for gestor e o colaborador que está sendo editado for admin, bloqueia
+            if (isGestor && state.membros[index].cargo === "admin") {
+                showToast("Gestor não possui permissão para editar Administradores.", "error");
+                return;
+            }
             state.membros[index] = { ...state.membros[index], ...dataMember };
             showToast("Colaborador atualizado!", "success");
             postToSheets("Membros", "atualizar_linha", state.membros[index], id);
@@ -1368,9 +1482,21 @@ function submitProductForm() {
 // --- EDIT HANDLERS (Populate Modals) ---
 
 window.editMember = function(id) {
-    if (state.config.activeUserId !== "gestor") return; // Apenas gestor pode editar
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestorOrAdmin = activeId === "admin" || activeId === "gestor" || (currentUser && (currentUser.cargo === "admin" || currentUser.cargo === "gerente"));
+    
+    if (!isGestorOrAdmin) return;
     const m = state.membros.find(x => x.id === id);
     if (!m) return;
+
+    const isGestor = activeId === "gestor" || (currentUser && currentUser.cargo === "gerente");
+    
+    // Gestor não pode editar outro Admin
+    if (isGestor && m.cargo === "admin") {
+        showToast("Gestor não possui permissão para editar Administradores.", "error");
+        return;
+    }
 
     document.getElementById("member-modal-title").textContent = "Editar Colaborador";
     document.getElementById("member-edit-id").value = m.id;
@@ -1378,6 +1504,17 @@ window.editMember = function(id) {
     document.getElementById("member-cpf").value = m.cpf;
     document.getElementById("member-telefone").value = m.telefone;
     document.getElementById("member-email").value = m.email;
+    document.getElementById("member-senha").value = m.senha || "";
+    
+    // Controla opções de cargo para o gestor (ele não pode mudar alguém para Admin)
+    const selectCargo = document.getElementById("member-cargo");
+    const optionAdmin = selectCargo.querySelector('option[value="admin"]');
+    if (isGestor) {
+        if (optionAdmin) optionAdmin.disabled = true;
+    } else {
+        if (optionAdmin) optionAdmin.disabled = false;
+    }
+    
     document.getElementById("member-cargo").value = m.cargo;
     document.getElementById("member-comissao").value = m.taxa_comissao;
     document.getElementById("member-admissao").value = m.data_admissao.split('T')[0];
@@ -1387,7 +1524,11 @@ window.editMember = function(id) {
 };
 
 window.editService = function(id) {
-    if (state.config.activeUserId !== "gestor") return;
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestorOrAdmin = activeId === "admin" || activeId === "gestor" || (currentUser && (currentUser.cargo === "admin" || currentUser.cargo === "gerente"));
+    
+    if (!isGestorOrAdmin) return;
     const s = state.servicos.find(x => x.id === id);
     if (!s) return;
 
@@ -1404,7 +1545,11 @@ window.editService = function(id) {
 };
 
 window.editProduct = function(id) {
-    if (state.config.activeUserId !== "gestor") return;
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestorOrAdmin = activeId === "admin" || activeId === "gestor" || (currentUser && (currentUser.cargo === "admin" || currentUser.cargo === "gerente"));
+    
+    if (!isGestorOrAdmin) return;
     const p = state.produtos.find(x => x.id === id);
     if (!p) return;
 
@@ -1545,7 +1690,6 @@ function viewStaffHistory(staffId) {
     const listEl = document.getElementById("staff-history-list");
     listEl.innerHTML = "";
 
-    // Filtra logs do colaborador baseado no período configurado no gestor
     const period = document.getElementById("manager-period-select").value;
     
     const activeLanc = state.lancamentos.filter(l => !l.cancelado && l.team_member_id === staffId);
@@ -1610,6 +1754,251 @@ function viewStaffHistory(staffId) {
 }
 
 window.viewStaffHistory = viewStaffHistory;
+
+// --- DYNAMIC GRAPH COMPARATIVE (Hoje vs Ontem, Semana vs Semana Passada, Mês vs Mês Anterior) ---
+
+function getPreviousPeriodData(metric, activePeriod) {
+    let minDate = new Date();
+    let maxDate = new Date();
+    const now = new Date();
+
+    if (activePeriod === "hoje") {
+        minDate.setDate(now.getDate() - 1);
+        minDate.setHours(0, 0, 0, 0);
+        maxDate.setDate(now.getDate() - 1);
+        maxDate.setHours(23, 59, 59, 999);
+    } else if (activePeriod === "semana") {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
+        minDate.setDate(diff);
+        minDate.setHours(0, 0, 0, 0);
+        maxDate.setDate(diff + 6);
+        maxDate.setHours(23, 59, 59, 999);
+    } else if (activePeriod === "mes") {
+        minDate.setMonth(now.getMonth() - 1, 1);
+        minDate.setHours(0, 0, 0, 0);
+        maxDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        maxDate.setHours(23, 59, 59, 999);
+    } else if (activePeriod === "ano") {
+        minDate.setFullYear(now.getFullYear() - 1, 0, 1);
+        minDate.setHours(0, 0, 0, 0);
+        maxDate.setFullYear(now.getFullYear() - 1, 11, 31);
+        maxDate.setHours(23, 59, 59, 999);
+    } else {
+        const startVal = document.getElementById("dashboard-date-start").value;
+        const endVal = document.getElementById("dashboard-date-end").value;
+        if (startVal && endVal) {
+            const currentStart = new Date(startVal + "T00:00:00");
+            const currentEnd = new Date(endVal + "T23:59:59");
+            const diffDays = Math.ceil((currentEnd - currentStart) / (1000 * 60 * 60 * 24));
+            minDate = new Date(currentStart);
+            minDate.setDate(currentStart.getDate() - diffDays);
+            maxDate = new Date(currentEnd);
+            maxDate.setDate(currentEnd.getDate() - diffDays);
+        } else {
+            return 0;
+        }
+    }
+
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestorOrAdmin = activeId === "admin" || activeId === "gestor" || (currentUser && (currentUser.cargo === "admin" || currentUser.cargo === "gerente"));
+
+    let prevLancamentos = state.lancamentos.filter(l => {
+        const d = new Date(l.data_hora);
+        return !l.cancelado && d >= minDate && d <= maxDate;
+    });
+
+    let prevVendas = state.vendas.filter(v => {
+        const d = new Date(v.data);
+        return d >= minDate && d <= maxDate;
+    });
+
+    if (!isGestorOrAdmin) {
+        prevLancamentos = prevLancamentos.filter(l => l.team_member_id === activeId);
+        prevVendas = prevVendas.filter(v => v.team_member_id === activeId);
+    }
+
+    if (metric === "faturamento") {
+        let fat = 0;
+        prevLancamentos.forEach(l => fat += parseFloat(l.valor) * parseInt(l.quantidade));
+        prevVendas.forEach(v => fat += parseFloat(v.total));
+        return fat;
+    } else if (metric === "servicos") {
+        return prevLancamentos.length;
+    } else if (metric === "vendas") {
+        let prodQty = 0;
+        prevVendas.forEach(v => prodQty += parseInt(v.quantidade));
+        return prodQty;
+    } else if (metric === "lucro") {
+        let fat = 0;
+        let comissoes = 0;
+        let custos = 0;
+        prevLancamentos.forEach(l => {
+            const valor = parseFloat(l.valor) * parseInt(l.quantidade);
+            fat += valor;
+            const b = state.membros.find(x => x.id === l.team_member_id);
+            comissoes += valor * ((b ? b.taxa_comissao : 50) / 100);
+        });
+        prevVendas.forEach(v => {
+            fat += parseFloat(v.total);
+            const prod = state.produtos.find(p => p.id === v.product_id);
+            custos += (prod ? parseFloat(prod.preco_compra || 0) : 0) * parseInt(v.quantidade);
+            comissoes += parseFloat(v.total) * 0.10;
+        });
+        return (fat - comissoes - custos);
+    }
+    return 0;
+}
+
+function renderComparisonGraph(period) {
+    const metricSelect = document.getElementById("timeline-metric-select");
+    const metric = metricSelect ? metricSelect.value : "faturamento";
+    
+    const activeId = state.config.activeUserId;
+    const currentUser = state.membros.find(m => m.id === activeId || (activeId === "admin" && m.cargo === "admin") || (activeId === "gestor" && m.cargo === "gerente"));
+    const isGestorOrAdmin = activeId === "admin" || activeId === "gestor" || (currentUser && (currentUser.cargo === "admin" || currentUser.cargo === "gerente"));
+
+    let activeLanc = state.lancamentos.filter(l => !l.cancelado);
+    let activeVendas = state.vendas;
+
+    if (!isGestorOrAdmin) {
+        activeLanc = activeLanc.filter(l => l.team_member_id === activeId);
+        activeVendas = activeVendas.filter(v => v.team_member_id === activeId);
+    }
+
+    const curLanc = filterByPeriod(activeLanc, "data_hora", period, "dashboard");
+    const curVendas = filterByPeriod(activeVendas, "data", period, "dashboard");
+    
+    let curVal = 0;
+    if (metric === "faturamento") {
+        curLanc.forEach(l => curVal += parseFloat(l.valor) * parseInt(l.quantidade));
+        curVendas.forEach(v => curVal += parseFloat(v.total));
+    } else if (metric === "servicos") {
+        curVal = curLanc.length;
+    } else if (metric === "vendas") {
+        curVendas.forEach(v => curVal += parseInt(v.quantidade));
+    } else if (metric === "lucro") {
+        let fat = 0;
+        let comissoes = 0;
+        let custos = 0;
+        curLanc.forEach(l => {
+            const valor = parseFloat(l.valor) * parseInt(l.quantidade);
+            fat += valor;
+            const b = state.membros.find(x => x.id === l.team_member_id);
+            comissoes += valor * ((b ? b.taxa_comissao : 50) / 100);
+        });
+        curVendas.forEach(v => {
+            fat += parseFloat(v.total);
+            const prod = state.produtos.find(p => p.id === v.product_id);
+            custos += (prod ? parseFloat(prod.preco_compra || 0) : 0) * parseInt(v.quantidade);
+            comissoes += parseFloat(v.total) * 0.10;
+        });
+        curVal = fat - comissoes - custos;
+    }
+
+    const prevVal = getPreviousPeriodData(metric, period);
+    let diffPercent = 0;
+    let trendClass = "trend-up";
+    let trendIcon = "trending-up";
+    let signStr = "+";
+
+    if (prevVal > 0) {
+        diffPercent = ((curVal - prevVal) / prevVal) * 100;
+    } else if (curVal > 0) {
+        diffPercent = 100;
+    }
+
+    if (diffPercent < 0) {
+        trendClass = "trend-down";
+        trendIcon = "trending-down";
+        signStr = "";
+    }
+
+    const formatFn = (metric === "faturamento" || metric === "lucro") ? formatBRL : (v) => `${v} unid`;
+    const graphContainer = document.getElementById("comparison-graph-container");
+    const maxVal = Math.max(curVal, prevVal, 1);
+    const curBarPct = (curVal / maxVal) * 100;
+    const prevBarPct = (prevVal / maxVal) * 100;
+
+    let periodLabel = "Anterior";
+    if (period === "hoje") periodLabel = "Ontem";
+    if (period === "semana") periodLabel = "Semana Passada";
+    if (period === "mes") periodLabel = "Mês Anterior";
+    if (period === "ano") periodLabel = "Ano Passado";
+
+    graphContainer.innerHTML = `
+        <div class="comparison-bar-row">
+            <div class="comparison-label-row">
+                <span>Período Atual</span>
+                <span class="comparison-val-bold">${formatFn(curVal)}</span>
+            </div>
+            <div class="comparison-bar-track">
+                <div class="comparison-bar-fill-current" style="width: ${curBarPct}%"></div>
+            </div>
+        </div>
+        <div class="comparison-bar-row">
+            <div class="comparison-label-row">
+                <span>${periodLabel}</span>
+                <span>${formatFn(prevVal)}</span>
+            </div>
+            <div class="comparison-bar-track">
+                <div class="comparison-bar-fill-previous" style="width: ${prevBarPct}%"></div>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 4px;">
+            <span style="font-size:11px; color:var(--text-muted);">Métricas calculadas do negócio</span>
+            <div class="trend-badge ${trendClass}">
+                <i data-lucide="${trendIcon}" style="width:12px; height:12px;"></i>
+                <span>${signStr}${diffPercent.toFixed(1)}%</span>
+            </div>
+        </div>
+    `;
+
+    lucide.createIcons();
+}
+
+// --- AUTHENTICATION & LOGIN FLOW ---
+
+function submitLoginForm() {
+    const emailInput = document.getElementById("login-email").value.trim().toLowerCase();
+    const passwordInput = document.getElementById("login-password").value.trim();
+
+    const user = state.membros.find(m => m.email.toLowerCase() === emailInput && m.status === "ativo");
+    
+    if (user && user.senha === passwordInput) {
+        let targetUserId = user.id;
+        
+        if (user.cargo === "admin") targetUserId = "admin";
+        if (user.cargo === "gerente" && user.id === "m-6") targetUserId = "gestor";
+
+        sessionStorage.setItem("active_user_id", targetUserId);
+        state.config.activeUserId = targetUserId;
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("form-login").reset();
+        
+        const labelRole = user.cargo === "admin" ? "Administrador" : user.cargo === "gerente" ? "Gestor" : "Colaborador";
+        showToast(`Bem-vindo, ${user.nome} (${labelRole})!`, "success");
+        
+        renderAll();
+        
+        if (user.cargo === "barbeiro") {
+            switchTab("view-barber-menu");
+        } else {
+            switchTab("view-dashboard");
+        }
+        return;
+    }
+
+    showToast("E-mail ou senha incorretos ou conta inativa.", "error");
+}
+
+function logoutUser() {
+    sessionStorage.removeItem("active_user_id");
+    state.config.activeUserId = null;
+    document.getElementById("login-screen").classList.remove("hidden");
+    showToast("Sessão encerrada com sucesso.", "info");
+}
 
 // --- UTILITY FORMATTERS ---
 function formatBRL(value) {

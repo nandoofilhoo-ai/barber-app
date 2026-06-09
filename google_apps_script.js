@@ -22,7 +22,7 @@
 function inicializarPlanilha() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var abasDesejadas = {
-    "Membros": ["id", "nome", "cpf", "telefone", "email", "cargo", "data_admissao", "status", "taxa_comissao"],
+    "Membros": ["id", "nome", "cpf", "telefone", "email", "cargo", "data_admissao", "status", "taxa_comissao", "senha"],
     "Servicos": ["id", "nome", "descricao", "valor_base", "tempo_estimado", "categoria", "ativo"],
     "Produtos": ["id", "nome", "marca", "categoria", "preco_venda", "preco_compra", "estoque", "unidade", "ativo"],
     "Lancamentos": ["id", "team_member_id", "service_id", "quantidade", "valor", "data_hora", "observacao", "usuario_id", "cancelado", "motivo_cancelamento"],
@@ -39,6 +39,23 @@ function inicializarPlanilha() {
       range.setFontWeight("bold");
       range.setBackground("#18181b");
       range.setFontColor("#ffffff");
+    } else {
+      // Se a aba já existe, verifica se há colunas novas a serem adicionadas (ex: 'senha')
+      var colunasDesejadas = abasDesejadas[nomeAba];
+      var numCols = sheet.getLastColumn();
+      var cabecalhoAtual = numCols > 0 ? sheet.getRange(1, 1, 1, numCols).getValues()[0] : [];
+      
+      colunasDesejadas.forEach(function(coluna) {
+        if (cabecalhoAtual.indexOf(coluna) === -1) {
+          // Adiciona a nova coluna no fim do cabeçalho
+          var novaColIndex = sheet.getLastColumn() + 1;
+          var cell = sheet.getRange(1, novaColIndex);
+          cell.setValue(coluna);
+          cell.setFontWeight("bold");
+          cell.setBackground("#18181b");
+          cell.setFontColor("#ffffff");
+        }
+      });
     }
   }
 }
