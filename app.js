@@ -567,8 +567,8 @@ function prefillLauncherOptions() {
     const selectService = document.getElementById("launch-service-item");
     const selectProduct = document.getElementById("launch-sale-product");
 
-    // Seleciona barbeiros ativos
-    const activeBarbers = state.membros.filter(m => m.status === "ativo");
+    // Seleciona barbeiros ativos (oculta administradores das opções de lançamentos)
+    const activeBarbers = state.membros.filter(m => m.status === "ativo" && m.cargo !== "admin");
     
     let barbersHtml = "";
     activeBarbers.forEach(b => {
@@ -1151,8 +1151,8 @@ function renderManagerDashboard() {
     const payoutContainer = document.getElementById("manager-payout-list");
     payoutContainer.innerHTML = "";
 
-    // Filtra membros que são prestadores (barbeiros, aprendizes, auxiliares)
-    const activeStaff = state.membros.filter(m => m.status === "ativo" && m.cargo !== "apoio");
+    // Filtra membros que são prestadores (barbeiros, aprendizes, auxiliares) e que não sejam Administradores
+    const activeStaff = state.membros.filter(m => m.status === "ativo" && m.cargo !== "apoio" && m.cargo !== "admin");
 
     activeStaff.forEach(m => {
         const staffLanc = periodLanc.filter(l => l.team_member_id === m.id);
@@ -1195,11 +1195,12 @@ function renderManagerDashboard() {
         payoutContainer.appendChild(card);
     });
 
-    // 2. Renderiza lista de equipe cadastrada para edição/exclusão
+    // 2. Renderiza lista de equipe cadastrada para edição/exclusão (oculta administradores)
     const teamContainer = document.getElementById("manager-team-list");
     teamContainer.innerHTML = "";
 
     state.membros.forEach(m => {
+        if (m.cargo === "admin") return; // Oculta o administrador da listagem pública de gerenciamento
         const card = document.createElement("div");
         card.className = "item-card";
         card.innerHTML = `
