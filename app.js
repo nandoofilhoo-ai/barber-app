@@ -171,15 +171,15 @@ async function silentSyncAtStartup() {
         if (response.ok) {
             const data = await response.json();
             let updated = false;
-            if (data.membros && data.membros.length > 0) {
-                state.membros = data.membros;
+            if (data.membros) {
+                state.membros = data.membros.length > 0 ? data.membros : [...SEED_MEMBROS];
                 updated = true;
             }
-            if (data.servicos && data.servicos.length > 0) {
+            if (data.servicos) {
                 state.servicos = data.servicos;
                 updated = true;
             }
-            if (data.produtos && data.produtos.length > 0) {
+            if (data.produtos) {
                 state.produtos = data.produtos;
                 updated = true;
             }
@@ -1623,10 +1623,10 @@ function renderBarberRanking(lancamentos, vendas) {
     const container = document.getElementById("ranking-barbers-container");
     container.innerHTML = "";
 
-    // Mapeia rendimentos de barbeiros
+    // Mapeia rendimentos de barbeiros (oculta administradores do ranking)
     const rendimentos = {};
     state.membros.forEach(m => {
-        if (m.status === "ativo" && m.cargo !== "apoio") {
+        if (m.status === "ativo" && m.cargo !== "apoio" && m.cargo !== "admin") {
             rendimentos[m.id] = { nome: m.nome, total: 0 };
         }
     });
